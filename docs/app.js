@@ -17,6 +17,8 @@ const video = document.getElementById("video");
 const videoWrap = document.querySelector(".video-wrap");
 const controlPanel = document.querySelector(".control-panel");
 const flashOverlay = document.getElementById("flashOverlay");
+const processingOverlay = document.getElementById("processingOverlay");
+const voxelGridEl = document.getElementById("voxelGrid");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 const overlay = document.getElementById("overlay");
@@ -318,6 +320,63 @@ function animateCapture(dataUrl) {
   });
 }
 
+const VOXEL_STAGE_SIZE = 300;
+const VOXEL_STAGGER_MS = 7;
+const VOXEL_MAX_DIAGONAL = 54; // (28-1) + (28-1)
+
+// Builds one <div class="voxel"> per "on" pixel of the 28x28 model input,
+// positioned to match its row/col, colored by a rainbow sweep along the
+// diagonal, and given a transition-delay along that same diagonal so
+// triggering .risen on all of them at once still animates as a wave.
+function buildVoxelGrid(modelInput) {
+  voxelGridEl.innerHTML = "";
+  const cell = VOXEL_STAGE_SIZE / 28;
+  const size = cell - 1.5;
+  const voxels = [];
+  for (let row = 0; row < 28; row++) {
+    for (let col = 0; col < 28; col++) {
+      if (modelInput[row * 28 + col] <= 0.5) continue;
+      const diagonal = row + col;
+      const hue = (diagonal / VOXEL_MAX_DIAGONAL) * 300;
+      const el = document.createElement("div");
+      el.className = "voxel";
+      el.style.left = `${col * cell}px`;
+      el.style.top = `${row * cell}px`;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.background = `hsl(${hue}, 90%, 65%)`;
+      el.style.color = `hsl(${hue}, 90%, 65%)`;
+      el.style.transitionDelay = `${diagonal * VOXEL_STAGGER_MS}ms`;
+      voxelGridEl.appendChild(el);
+      voxels.push(el);
+    }
+  }
+  return voxels;
+}
+
+// The "sick effect": your pixelated drawing rises into a 3D voxel field in
+// a rainbow diagonal wave, holds, then settles back down before the guess
+// reveals. Purely a visual flourish -- the actual classification already
+// finished before this runs.
+async function runProcessingEffect(modelInput) {
+  const voxels = buildVoxelGrid(modelInput);
+  processingOverlay.classList.add("visible");
+  void voxelGridEl.offsetWidth;
+
+  voxels.forEach((el) => el.classList.add("risen"));
+  await new Promise((r) => setTimeout(r, VOXEL_MAX_DIAGONAL * VOXEL_STAGGER_MS + 550));
+
+  voxels.forEach((el) => {
+    el.style.transitionDelay = "0ms";
+    el.classList.remove("risen");
+  });
+  await new Promise((r) => setTimeout(r, 400));
+
+  processingOverlay.classList.remove("visible");
+  await new Promise((r) => setTimeout(r, 320));
+  voxelGridEl.innerHTML = "";
+}
+
 clearBtn.addEventListener("click", () => {
   clearDrawCanvas();
   lastPoint = null;
@@ -348,6 +407,8 @@ guessBtn.addEventListener("click", async () => {
   await animateCapture(mirroredCanvas.toDataURL());
   const outputs = await inferencePromise;
   const probs = outputs.probs.data;
+
+  await runProcessingEffect(modelInput);
 
   guessBtn.disabled = false;
 
