@@ -6,7 +6,7 @@
 <title>AirDoodle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Kalam:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,6 +19,7 @@
 
     <main class="layout">
       <section class="camera-panel">
+        <span class="tape tape-1" aria-hidden="true"></span>
         <div id="startOverlay" class="start-overlay">
           <button id="startBtn" class="start-btn">Start camera &amp; model</button>
           <p class="start-hint">Needs camera access. The AI model (~2MB) loads once, then everything runs locally.</p>
@@ -50,6 +51,7 @@
       </section>
 
       <aside class="control-panel">
+        <span class="tape tape-2" aria-hidden="true"></span>
         <div id="processingOverlay" class="processing-overlay">
           <div class="voxel-stage">
             <div class="voxel-grid" id="voxelGrid"></div>
