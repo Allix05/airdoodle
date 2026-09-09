@@ -140,6 +140,9 @@ h1 {
 }
 
 .hero .accent {
+  /* Kalam's cursive capital I reads as a lowercase l right next to "A"
+     ("AI" looks like "Al") -- keep this part in the clearer Fredoka. */
+  font-family: "Fredoka", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: linear-gradient(90deg, var(--pink), var(--yellow), var(--green), var(--blue), var(--purple));
   background-size: 250% auto;
   -webkit-background-clip: text;
