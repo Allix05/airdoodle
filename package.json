@@ -1,0 +1,11 @@
+{
+  "name": "airdoodle",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Draw in the air with your webcam; a neural network guesses digits, letters, or doodles. 100% client-side.",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python -m http.server 8091 --directory docs"
+  }
+}

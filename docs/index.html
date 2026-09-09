@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AirDoodle</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>Draw In The Air <span class="accent">&amp; Let AI Guess</span></h1>
+      <p class="subtitle">Pinch your thumb and index finger together to draw with your webcam. Pick a color, sketch a digit, a letter, or a doodle, then hit Guess &mdash; a neural network trained on real handwriting and sketch data will classify your final drawing. Runs <strong>entirely in your browser</strong>, no server, video never leaves your device.</p>
+    </header>
+
+    <main class="layout">
+      <section class="camera-panel">
+        <div id="startOverlay" class="start-overlay">
+          <button id="startBtn" class="start-btn">Start camera &amp; model</button>
+          <p class="start-hint">Needs camera access. The AI model (~2MB) loads once, then everything runs locally.</p>
+        </div>
+
+        <div id="loadingOverlay" class="loading-overlay hidden">
+          <div class="spinner"></div>
+          <div class="loading-text" id="loadingText">Loading hand-tracking model&hellip;</div>
+        </div>
+
+        <div class="video-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="drawCanvas"></canvas>
+          <canvas id="overlay"></canvas>
+        </div>
+
+        <div id="errorBanner" class="error-banner hidden"></div>
+
+        <div class="toolbar">
+          <div class="color-swatches" id="colorSwatches"></div>
+          <button id="clearBtn">Clear</button>
+          <button id="guessBtn" class="guess-btn">Guess!</button>
+        </div>
+
+        <div id="penStatus" class="pen-status">
+          <span class="dot"></span><span id="penStatusText">Pinch thumb + index finger to draw</span>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <h2>AI's guess</h2>
+        <p class="hint">Draw a digit (0-9), a letter (A-Z), or one of the doodle categories below, then click Guess.</p>
+
+        <div id="resultBlock" class="result-block" style="display:none;">
+          <canvas id="snapshotCanvas" class="snapshot" width="28" height="28"></canvas>
+          <div id="resultGuess" class="result-guess">&mdash;</div>
+          <div class="result-sub">what the model actually saw is shown above</div>
+          <div id="topGuesses" class="top-guesses"></div>
+        </div>
+
+        <div class="category-list">
+          <div class="value-label">What it can recognize</div>
+          <div class="category-chips" id="categoryChips"></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      Built with MediaPipe Hand Landmarker + PyTorch/ONNX Runtime Web &middot; <a href="https://github.com/Allix05/airdoodle" target="_blank" rel="noopener">source on GitHub</a>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
