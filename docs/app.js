@@ -2,6 +2,7 @@ import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@m
 
 import { isPinching, penPoint, Debouncer, LM } from "./hand.js";
 import { preprocessDrawing } from "./preprocess.js";
+import { addCorrection, loadCorrections, exportCorrectionsJSON } from "./corrections.js";
 
 // Must exactly match training/classes.py's CLASSES order -- this is the
 // model's output label space.
@@ -33,12 +34,21 @@ const snapshotCtx = snapshotCanvas.getContext("2d");
 const resultGuess = document.getElementById("resultGuess");
 const topGuessesEl = document.getElementById("topGuesses");
 const categoryChipsEl = document.getElementById("categoryChips");
+const feedbackAsk = document.getElementById("feedbackAsk");
+const feedbackYes = document.getElementById("feedbackYes");
+const feedbackNo = document.getElementById("feedbackNo");
+const feedbackCorrect = document.getElementById("feedbackCorrect");
+const feedbackChipsEl = document.getElementById("feedbackChips");
+const feedbackThanks = document.getElementById("feedbackThanks");
+const correctionsCountEl = document.getElementById("correctionsCount");
+const downloadCorrectionsBtn = document.getElementById("downloadCorrections");
 
 let currentColor = COLORS[0];
 COLORS.forEach((color, i) => {
   const btn = document.createElement("button");
   btn.className = "swatch" + (i === 0 ? " active" : "");
   btn.style.background = color;
+  btn.style.setProperty("--sw-color", color);
   btn.addEventListener("click", () => {
     currentColor = color;
     [...colorSwatchesEl.children].forEach((c) => c.classList.remove("active"));
@@ -58,6 +68,55 @@ CLASSES.forEach((name) => {
   categoryChipsEl.appendChild(chip);
 });
 
+CLASSES.forEach((name) => {
+  const chip = document.createElement("button");
+  chip.className = "feedback-chip";
+  chip.textContent = formatLabel(name);
+  chip.addEventListener("click", () => {
+    if (!lastModelInput) return;
+    addCorrection({ correctLabel: name, guessedLabel: lastGuessedLabel, modelInput: lastModelInput }, window.localStorage);
+    feedbackCorrect.classList.add("hidden");
+    feedbackThanks.classList.remove("hidden");
+    updateCorrectionsUI();
+  });
+  feedbackChipsEl.appendChild(chip);
+});
+
+function updateCorrectionsUI() {
+  const count = loadCorrections(window.localStorage).length;
+  correctionsCountEl.textContent =
+    count === 0 ? "No corrections collected yet." : `${count} correction${count === 1 ? "" : "s"} collected.`;
+  downloadCorrectionsBtn.disabled = count === 0;
+}
+
+function resetFeedbackUI() {
+  feedbackAsk.classList.remove("hidden");
+  feedbackCorrect.classList.add("hidden");
+  feedbackThanks.classList.add("hidden");
+}
+
+feedbackYes.addEventListener("click", () => {
+  feedbackAsk.classList.add("hidden");
+});
+
+feedbackNo.addEventListener("click", () => {
+  feedbackAsk.classList.add("hidden");
+  feedbackCorrect.classList.remove("hidden");
+});
+
+downloadCorrectionsBtn.addEventListener("click", () => {
+  const json = exportCorrectionsJSON(window.localStorage);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "airdoodle-corrections.json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+updateCorrectionsUI();
+
 function showError(message) {
   errorBanner.textContent = message;
   errorBanner.classList.remove("hidden");
@@ -67,11 +126,16 @@ let handLandmarker = null;
 let session = null;
 let running = false;
 let lastPoint = null;
+let lastModelInput = null;
+let lastGuessedLabel = null;
 const pinchDebouncer = new Debouncer(3, false);
 
-function fillCanvasBlack(canvas, ctx) {
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+// The draw canvas is kept transparent (not opaque black) so the live
+// camera feed shows through behind your strokes -- purely visual, since
+// preprocess.js's binary mask only looks at drawn (non-background) pixel
+// color, and transparent background pixels read as background either way.
+function clearDrawCanvas() {
+  drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
 }
 
 function resizeCanvases() {
@@ -82,7 +146,7 @@ function resizeCanvases() {
     if (c.width !== w || c.height !== h) {
       c.width = w;
       c.height = h;
-      if (c === drawCanvas) fillCanvasBlack(drawCanvas, drawCtx);
+      if (c === drawCanvas) clearDrawCanvas();
     }
   }
 }
@@ -97,7 +161,7 @@ async function init() {
     await video.play();
 
     resizeCanvases();
-    fillCanvasBlack(drawCanvas, drawCtx);
+    clearDrawCanvas();
 
     loadingText.textContent = "Loading the drawing-recognition model...";
     ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/";
@@ -187,9 +251,9 @@ function loop() {
 }
 
 clearBtn.addEventListener("click", () => {
-  fillCanvasBlack(drawCanvas, drawCtx);
+  clearDrawCanvas();
   lastPoint = null;
-  resultBlock.style.display = "none";
+  resultBlock.classList.remove("visible");
 });
 
 guessBtn.addEventListener("click", async () => {
@@ -198,9 +262,12 @@ guessBtn.addEventListener("click", async () => {
   const { modelInput, isEmpty } = preprocessDrawing(imageData.data, drawCanvas.width, drawCanvas.height);
 
   if (isEmpty) {
-    resultBlock.style.display = "block";
     resultGuess.textContent = "Draw something first!";
     topGuessesEl.innerHTML = "";
+    feedbackAsk.classList.add("hidden");
+    feedbackCorrect.classList.add("hidden");
+    feedbackThanks.classList.add("hidden");
+    resultBlock.classList.add("visible");
     return;
   }
 
@@ -223,8 +290,9 @@ guessBtn.addEventListener("click", async () => {
     .map((p, i) => ({ p, i }))
     .sort((a, b) => b.p - a.p);
 
-  resultBlock.style.display = "block";
-  resultGuess.textContent = formatLabel(CLASSES[ranked[0].i]);
+  lastModelInput = modelInput;
+  lastGuessedLabel = CLASSES[ranked[0].i];
+  resultGuess.textContent = formatLabel(lastGuessedLabel);
 
   topGuessesEl.innerHTML = "";
   ranked.slice(0, 5).forEach(({ p, i }) => {
@@ -237,6 +305,13 @@ guessBtn.addEventListener("click", async () => {
     `;
     topGuessesEl.appendChild(row);
   });
+
+  resetFeedbackUI();
+  resultBlock.classList.remove("visible");
+  // Force reflow so re-triggering the class on a fresh guess re-plays the
+  // transition even if the block was already visible from a prior guess.
+  void resultBlock.offsetWidth;
+  resultBlock.classList.add("visible");
 });
 
 startBtn.addEventListener("click", init);

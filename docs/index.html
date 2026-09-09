@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AirDoodle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="bg-blobs"><span></span><span></span><span></span></div>
   <div class="page">
     <header class="hero">
       <h1>Draw In The Air <span class="accent">&amp; Let AI Guess</span></h1>
@@ -48,16 +52,35 @@
         <h2>AI's guess</h2>
         <p class="hint">Draw a digit (0-9), a letter (A-Z), or one of the doodle categories below, then click Guess.</p>
 
-        <div id="resultBlock" class="result-block" style="display:none;">
+        <div id="resultBlock" class="result-block">
           <canvas id="snapshotCanvas" class="snapshot" width="28" height="28"></canvas>
           <div id="resultGuess" class="result-guess">&mdash;</div>
           <div class="result-sub">what the model actually saw is shown above</div>
           <div id="topGuesses" class="top-guesses"></div>
+
+          <div id="feedbackSection" class="feedback-section">
+            <div id="feedbackAsk" class="feedback-row">
+              <span class="feedback-label">Was that right?</span>
+              <button id="feedbackYes" class="feedback-btn yes">Yes</button>
+              <button id="feedbackNo" class="feedback-btn no">No</button>
+            </div>
+            <div id="feedbackCorrect" class="feedback-correct hidden">
+              <div class="feedback-label">What was it?</div>
+              <div class="feedback-chips" id="feedbackChips"></div>
+            </div>
+            <div id="feedbackThanks" class="feedback-thanks hidden">Saved &mdash; thanks for the correction!</div>
+          </div>
         </div>
 
         <div class="category-list">
           <div class="value-label">What it can recognize</div>
           <div class="category-chips" id="categoryChips"></div>
+        </div>
+
+        <div class="corrections-block">
+          <div class="value-label">Training feedback</div>
+          <p class="hint" id="correctionsCount">No corrections collected yet.</p>
+          <button id="downloadCorrections" class="small-btn" disabled>Download corrections</button>
         </div>
       </aside>
     </main>
