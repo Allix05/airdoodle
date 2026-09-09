@@ -320,7 +320,7 @@ function animateCapture(dataUrl) {
   });
 }
 
-const VOXEL_STAGE_SIZE = 300;
+const VOXEL_STAGE_SIZE = 220;
 const VOXEL_STAGGER_MS = 7;
 const VOXEL_MAX_DIAGONAL = 54; // (28-1) + (28-1)
 

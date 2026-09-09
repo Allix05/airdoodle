@@ -50,6 +50,13 @@
       </section>
 
       <aside class="control-panel">
+        <div id="processingOverlay" class="processing-overlay">
+          <div class="voxel-stage">
+            <div class="voxel-grid" id="voxelGrid"></div>
+          </div>
+          <div class="processing-label">Analyzing pixels&hellip;</div>
+        </div>
+
         <h2>AI's guess</h2>
         <p class="hint">Draw a digit (0-9), a letter (A-Z), or one of the doodle categories below, then click Guess.</p>
 
@@ -89,13 +96,6 @@
     <footer class="footer">
       Built with MediaPipe Hand Landmarker + PyTorch/ONNX Runtime Web &middot; <a href="https://github.com/Allix05/airdoodle" target="_blank" rel="noopener">source on GitHub</a>
     </footer>
-  </div>
-
-  <div id="processingOverlay" class="processing-overlay">
-    <div class="voxel-stage">
-      <div class="voxel-grid" id="voxelGrid"></div>
-    </div>
-    <div class="processing-label">Analyzing pixels&hellip;</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
