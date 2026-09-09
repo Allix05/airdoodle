@@ -14,6 +14,9 @@ const CLASSES = [...DIGITS, ...LETTERS, ...DOODLES];
 const COLORS = ["#ffffff", "#ff5b7f", "#ffcc4d", "#4dffb0", "#5b8cff", "#c37bff"];
 
 const video = document.getElementById("video");
+const videoWrap = document.querySelector(".video-wrap");
+const controlPanel = document.querySelector(".control-panel");
+const flashOverlay = document.getElementById("flashOverlay");
 const drawCanvas = document.getElementById("drawCanvas");
 const drawCtx = drawCanvas.getContext("2d");
 const overlay = document.getElementById("overlay");
@@ -250,6 +253,52 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+// Camera-flash + "photo flies over to be processed" effect. Snapshots the
+// current colorful drawing (not the 28x28 processed version -- that gets
+// revealed once it lands, inside the result card) and animates it
+// shrinking into the control panel. Resolves once the flight finishes.
+function animateCapture() {
+  return new Promise((resolve) => {
+    const startRect = videoWrap.getBoundingClientRect();
+    const destRect = controlPanel.getBoundingClientRect();
+
+    const photo = document.createElement("img");
+    photo.src = drawCanvas.toDataURL();
+    photo.className = "flying-photo";
+    photo.style.left = `${startRect.left}px`;
+    photo.style.top = `${startRect.top}px`;
+    photo.style.width = `${startRect.width}px`;
+    photo.style.height = `${startRect.height}px`;
+    photo.style.borderRadius = "14px";
+    document.body.appendChild(photo);
+    // Force the browser to commit the starting position/size before we
+    // change the transform below, so the transition has a "from" state to
+    // animate away from. Doesn't depend on requestAnimationFrame, which
+    // browsers throttle for backgrounded/hidden tabs.
+    void photo.offsetWidth;
+
+    flashOverlay.classList.remove("flash");
+    void flashOverlay.offsetWidth;
+    flashOverlay.classList.add("flash");
+
+    const targetSize = 64;
+    const targetX = destRect.left + destRect.width / 2 - targetSize / 2;
+    const targetY = destRect.top + 46;
+    const dx = targetX - startRect.left;
+    const dy = targetY - startRect.top;
+    const scale = targetSize / startRect.width;
+
+    photo.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    photo.style.opacity = "0";
+    photo.style.borderRadius = "50%";
+
+    setTimeout(() => {
+      photo.remove();
+      resolve();
+    }, 620);
+  });
+}
+
 clearBtn.addEventListener("click", () => {
   clearDrawCanvas();
   lastPoint = null;
@@ -271,6 +320,17 @@ guessBtn.addEventListener("click", async () => {
     return;
   }
 
+  guessBtn.disabled = true;
+
+  // Run inference while the capture animation plays, so the guess is
+  // ready right as the photo "lands" in the panel.
+  const inferencePromise = session.run({ input: new ort.Tensor("float32", modelInput, [1, 1, 28, 28]) });
+  await animateCapture();
+  const outputs = await inferencePromise;
+  const probs = outputs.probs.data;
+
+  guessBtn.disabled = false;
+
   // Render what the model actually sees (the 28x28 preprocessed input).
   const snapImage = snapshotCtx.createImageData(28, 28);
   for (let i = 0; i < 28 * 28; i++) {
@@ -281,10 +341,6 @@ guessBtn.addEventListener("click", async () => {
     snapImage.data[i * 4 + 3] = 255;
   }
   snapshotCtx.putImageData(snapImage, 0, 0);
-
-  const tensor = new ort.Tensor("float32", modelInput, [1, 1, 28, 28]);
-  const outputs = await session.run({ input: tensor });
-  const probs = outputs.probs.data;
 
   const ranked = Array.from(probs)
     .map((p, i) => ({ p, i }))
