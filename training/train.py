@@ -1,10 +1,12 @@
 """Train DoodleNet on the unified digits+letters+doodles dataset."""
 import json
 import os
+import random
 
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from classes import CLASSES
@@ -12,10 +14,27 @@ from model import DoodleNet
 
 DATA_PATH = "data/unified.npz"
 CHECKPOINT_DIR = "checkpoints"
-EPOCHS = 12
+EPOCHS = 20
 BATCH_SIZE = 256
 LR = 1e-3
 VAL_FRACTION = 0.08
+MAX_SHIFT = 2  # pixels; cheap translation augmentation, whole batch shifted together
+
+
+def random_shift_batch(xb, max_shift=MAX_SHIFT):
+    """Shift a whole batch by the same random (dx, dy) in [-max_shift, max_shift].
+    Zero-padded (matches the black background convention), fully vectorized --
+    no per-sample Python loop, so it's nearly free on top of training time.
+    """
+    dx = random.randint(-max_shift, max_shift)
+    dy = random.randint(-max_shift, max_shift)
+    if dx == 0 and dy == 0:
+        return xb
+    h, w = xb.shape[-2], xb.shape[-1]
+    padded = F.pad(xb, (max_shift, max_shift, max_shift, max_shift))
+    top = max_shift - dy
+    left = max_shift - dx
+    return padded[:, :, top : top + h, left : left + w]
 
 
 def main():
@@ -51,6 +70,7 @@ def main():
         total_loss = 0.0
         for xb, yb in train_loader:
             xb, yb = xb.to(device), yb.to(device)
+            xb = random_shift_batch(xb)
             optimizer.zero_grad()
             logits = model(xb)
             loss = criterion(logits, yb)

@@ -10,8 +10,8 @@ import torchvision
 from classes import CLASSES, DIGIT_OFFSET, DOODLE_OFFSET, DOODLES, LETTER_OFFSET
 from quickdraw_fetch import load_quickdraw_subset
 
-N_PER_DOODLE_CLASS = 6000
-N_PER_LETTER_CLASS = 4000  # EMNIST letters has plenty; cap for balance/speed
+N_PER_DOODLE_CLASS = 15000
+N_PER_LETTER_CLASS = 4800  # EMNIST letters split has ~4800/class available, use it all
 
 
 def load_mnist():

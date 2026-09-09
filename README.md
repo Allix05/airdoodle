@@ -40,13 +40,17 @@ Webcam ──▶ MediaPipe Hand Landmarker ──▶ 21 landmarks
 
 ## Results
 
-`DoodleNet` (a small CNN: 3 conv layers + 2 FC layers, ~1.6M parameters) trained for 12 epochs on 195K training images (212K total across 44 classes, 8% held out for validation) — about 12 minutes on a laptop CPU, no GPU:
+`DoodleNet` (a small CNN: 3 conv layers + 2 FC layers, ~1.6M parameters) trained for 20 epochs on 280K training images (304.8K total across 44 classes, 8% held out for validation), with light translation augmentation (each batch randomly shifted ±2px):
 
 | | |
 |---|---|
-| **Validation accuracy** | **96.2%** across all 44 classes |
-| Training loss | 0.58 → 0.11 |
-| Training data | 60K MNIST digits + 104K EMNIST letters + 48K Quick Draw doodles (6K/category) |
+| **Validation accuracy** | **96.6%** across all 44 classes |
+| Training loss | 0.69 → 0.14 |
+| Training data | 60K MNIST digits + 124.8K EMNIST letters (full split) + 120K Quick Draw doodles (15K/category) |
+
+An earlier, smaller version of this model (212K images, 12 epochs, no augmentation) scored 96.2%.
+
+
 
 ## What it can recognize
 
