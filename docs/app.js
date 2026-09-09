@@ -253,17 +253,36 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// Camera-flash + "photo flies over to be processed" effect. Snapshots the
-// current colorful drawing (not the 28x28 processed version -- that gets
-// revealed once it lands, inside the result card) and animates it
-// shrinking into the control panel. Resolves once the flight finishes.
-function animateCapture() {
+// The draw canvas is displayed mirrored via a CSS transform (so it feels
+// natural, like a mirror) but that's purely visual -- the underlying pixel
+// buffer is never actually flipped, so toDataURL()/getImageData() return
+// the *unmirrored* version, which is backwards relative to what you saw
+// yourself drawing on screen. For asymmetric shapes (letters especially)
+// that backwards version is what the model would otherwise classify,
+// which is wrong. This draws the canvas onto a fresh, actually-flipped
+// canvas so everything downstream (classification, the flying photo,
+// the snapshot preview) matches what you actually saw.
+function createMirroredCanvas(sourceCanvas) {
+  const mirrored = document.createElement("canvas");
+  mirrored.width = sourceCanvas.width;
+  mirrored.height = sourceCanvas.height;
+  const mctx = mirrored.getContext("2d");
+  mctx.translate(mirrored.width, 0);
+  mctx.scale(-1, 1);
+  mctx.drawImage(sourceCanvas, 0, 0);
+  return mirrored;
+}
+
+// Camera-flash + "photo flies over to be processed" effect. Takes the
+// (already mirror-corrected) drawing data URL and animates it shrinking
+// into the control panel. Resolves once the flight finishes.
+function animateCapture(dataUrl) {
   return new Promise((resolve) => {
     const startRect = videoWrap.getBoundingClientRect();
     const destRect = controlPanel.getBoundingClientRect();
 
     const photo = document.createElement("img");
-    photo.src = drawCanvas.toDataURL();
+    photo.src = dataUrl;
     photo.className = "flying-photo";
     photo.style.left = `${startRect.left}px`;
     photo.style.top = `${startRect.top}px`;
@@ -307,8 +326,9 @@ clearBtn.addEventListener("click", () => {
 
 guessBtn.addEventListener("click", async () => {
   if (!session) return;
-  const imageData = drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
-  const { modelInput, isEmpty } = preprocessDrawing(imageData.data, drawCanvas.width, drawCanvas.height);
+  const mirroredCanvas = createMirroredCanvas(drawCanvas);
+  const imageData = mirroredCanvas.getContext("2d").getImageData(0, 0, mirroredCanvas.width, mirroredCanvas.height);
+  const { modelInput, isEmpty } = preprocessDrawing(imageData.data, mirroredCanvas.width, mirroredCanvas.height);
 
   if (isEmpty) {
     resultGuess.textContent = "Draw something first!";
@@ -325,7 +345,7 @@ guessBtn.addEventListener("click", async () => {
   // Run inference while the capture animation plays, so the guess is
   // ready right as the photo "lands" in the panel.
   const inferencePromise = session.run({ input: new ort.Tensor("float32", modelInput, [1, 1, 28, 28]) });
-  await animateCapture();
+  await animateCapture(mirroredCanvas.toDataURL());
   const outputs = await inferencePromise;
   const probs = outputs.probs.data;
 
