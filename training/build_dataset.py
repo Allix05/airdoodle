@@ -8,6 +8,7 @@ import numpy as np
 import torchvision
 
 from classes import CLASSES, DIGIT_OFFSET, DOODLE_OFFSET, DOODLES, LETTER_OFFSET
+from load_corrections import load_corrections
 from quickdraw_fetch import load_quickdraw_subset
 
 N_PER_DOODLE_CLASS = 15000
@@ -62,8 +63,12 @@ def build_and_save(out_path="data/unified.npz"):
     doodle_x, doodle_y = load_doodles()
     print(f"  {len(doodle_x)} samples")
 
-    X = np.concatenate([mnist_x, emnist_x, doodle_x])
-    y = np.concatenate([mnist_y, emnist_y, doodle_y])
+    print("Loading user-submitted corrections (training/corrections/*.json)...")
+    corrections_x, corrections_y = load_corrections()
+    print(f"  {len(corrections_x)} samples (after upsampling)")
+
+    X = np.concatenate([mnist_x, emnist_x, doodle_x, corrections_x])
+    y = np.concatenate([mnist_y, emnist_y, doodle_y, corrections_y])
 
     perm = np.random.RandomState(42).permutation(len(X))
     X, y = X[perm], y[perm]

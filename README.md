@@ -36,7 +36,7 @@ Webcam ──▶ MediaPipe Hand Landmarker ──▶ 21 landmarks
 2. **Drawing** (`app.js`) — while pinching, the midpoint between thumb and index fingertips draws onto a persistent canvas in your chosen color.
 3. **[`preprocess.js`](docs/preprocess.js)** — when you click Guess, the drawing is converted to a binary stroke mask (color-agnostic — any drawn color counts, only shape matters), cropped to its bounding box, centered with a margin, and downscaled to 28x28 grayscale: the exact convention MNIST, EMNIST, and Google's Quick Draw dataset all already share.
 4. **[`training/`](training/)** — a PyTorch CNN (`DoodleNet`) trained on a unified dataset built from three real sources, then exported to ONNX and run client-side via [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/).
-5. **[`corrections.js`](docs/corrections.js)** — if the guess is wrong, you can tell it the right answer. This is saved locally in your browser (compactly — each 28x28 binary drawing packs into ~130 bytes) and can be exported as a JSON file. **This does not retrain the model in your browser** — ONNX Runtime Web only runs inference, not training — but it gives you a real way to collect mistakes that could be used to fine-tune a future version of the model offline.
+5. **[`corrections.js`](docs/corrections.js)** — if the guess is wrong, you can tell it the right answer. This is saved locally in your browser (compactly — each 28x28 binary drawing packs into ~130 bytes) and can be exported as a JSON file. **This does not retrain the model in your browser** — ONNX Runtime Web only runs inference, not training. Drop the exported file into [`training/corrections/`](training/corrections/) and the next `build_dataset.py` run automatically folds it into training (see [`load_corrections.py`](training/load_corrections.py)) — closing the loop from "the model got this wrong" to an actually-improved next model.
 
 ## Results
 
@@ -85,7 +85,7 @@ python train.py           # trains DoodleNet, saves checkpoints/best.pt
 python export_onnx.py     # exports to docs/model.onnx
 ```
 
-`build_dataset.py` doesn't download entire Quick Draw category files (each is 50-150MB) — it uses HTTP range requests to fetch just the header plus the exact byte range needed for the sample count requested (see [`quickdraw_fetch.py`](training/quickdraw_fetch.py)).
+`build_dataset.py` doesn't download entire Quick Draw category files (each is 50-150MB) — it uses HTTP range requests to fetch just the header plus the exact byte range needed for the sample count requested (see [`quickdraw_fetch.py`](training/quickdraw_fetch.py)). It also automatically merges in anything found in [`training/corrections/`](training/corrections/) (see above).
 
 ## Project structure
 
@@ -100,6 +100,8 @@ docs/                fully static GitHub Pages app
 training/            PyTorch training pipeline
   classes.py             the unified label space
   quickdraw_fetch.py     partial-download Quick Draw fetcher
+  load_corrections.py    unpacks training/corrections/*.json into the dataset
+  corrections/            drop exported correction files here
   build_dataset.py       assembles the unified dataset
   model.py               DoodleNet CNN
   train.py               training loop
