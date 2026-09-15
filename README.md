@@ -1,7 +1,7 @@
 # AirDoodle
 
 [![CI](https://github.com/Allix05/airdoodle/actions/workflows/ci.yml/badge.svg)](https://github.com/Allix05/airdoodle/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 
 Draw in the air with your webcam and let a neural network guess what it is. Pinch your thumb and index finger together to draw, pick a color, sketch a digit, a letter, or a doodle, then hit **Guess** — a CNN trained on real handwriting and sketch data classifies your final drawing, right there in your browser.
 
@@ -116,4 +116,4 @@ training/            PyTorch training pipeline
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+All Rights Reserved — see [LICENSE](LICENSE). Source is public for portfolio/demonstration purposes; reuse requires permission.
